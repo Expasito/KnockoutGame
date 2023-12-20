@@ -43,12 +43,15 @@ class Knockout:
 
 		mu = 0.1
 
+		width = 32
+		height = 32
+
 		def __init__(self, x ,y):
 			Knockout.Entity.__init__(self)
-			self.image = pygame.Surface((32,32))
+			self.image = pygame.Surface((Knockout.Penguin.width, Knockout.Penguin.height))
 			self.image.convert()
 			self.image.fill(pygame.Color("#DDDDDD"))
-			self.rect = pygame.Rect(x,y,32,32)
+			self.rect = pygame.Rect(x,y,Knockout.Penguin.width, Knockout.Penguin.height)
 
 			self.x = x;
 			self.y = y;
@@ -60,10 +63,16 @@ class Knockout:
 			self.ex = 0
 
 		def draw(self):
-			pygame.draw.ellipse(Knockout.screen,"#DDAADD",(self.x*Knockout.SCALE,self.y*Knockout.SCALE,Knockout.Penguin.radius*Knockout.SCALE,Knockout.Penguin.radius*Knockout.SCALE),1)
+			
+
+			pygame.draw.ellipse(Knockout.screen,"#DDAADD",(self.x*Knockout.SCALE - Knockout.Penguin.width,self.y*Knockout.SCALE - Knockout.Penguin.height,Knockout.Penguin.radius*Knockout.SCALE,Knockout.Penguin.radius*Knockout.SCALE),1)
 
 		def update(self, entities):
 		
+			if self.vx > 0:
+				sign = 1
+			else:
+				sign = -1
 			#self.y += self.vy - self.vx * .8
 
 		
@@ -74,6 +83,8 @@ class Knockout:
 
 			# Wother = force * distance, where force = mu*normal
 
+			self.vx = abs(self.vx)
+
 			# figure out how much energy was lost
 			wOther = self.vx/Knockout.frameRate * Knockout.Penguin.mass * -9.8 * Knockout.Penguin.mu
 
@@ -83,7 +94,7 @@ class Knockout:
 			eFinal = eInitial + wOther
 
 			if(eFinal >= 0):
-				self.vx = sqrt(2 * eFinal/Knockout.Penguin.mass)
+				self.vx = sign * sqrt(2 * eFinal/Knockout.Penguin.mass)
 			else:
 				self.vx = 0
 
@@ -115,6 +126,19 @@ class Knockout:
 		for e in Knockout.entities:
 			e.update(Knockout.entities)
 
+		# check for colissions
+		for e in Knockout.entities:
+			for e2 in Knockout.entities:
+				if e == e2:
+					continue
+
+				dist = sqrt((e.x-e2.x)**2 + (e.y-e2.y)**2)
+				if dist < Knockout.Penguin.radius:
+					print("Collide!")
+					e.vx *= -1
+					#e2.vx *= -1
+				
+
 
 		# draw them to the screen
 		for e in Knockout.entities:
@@ -127,6 +151,9 @@ class Knockout:
 		while True:
 			self.tick()
 
+			
+
+			# check if all entities have 0 velocity
 			check = False
 			for e in Knockout.entities:
 				if e.vx != 0.0:
@@ -145,12 +172,14 @@ def main():
 	knockout = Knockout()
 
 	knockout.addPenguin(Knockout.Penguin(1,1))
+	knockout.addPenguin(Knockout.Penguin(5,1))
+
 
 	knockout.setVel(0,1,1)
 
 	knockout.simulate()
 
-	knockout.setVel(0,-1,-1)
+	knockout.setVel(0,3,-1)
 
 	knockout.simulate()
 
