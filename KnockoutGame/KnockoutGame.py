@@ -1,8 +1,8 @@
 
-from math import sqrt
+from ssl import VERIFY_CRL_CHECK_LEAF
 import pygame, sys
 from pygame.locals import *
-import random, time
+import random, time, math
 
 
 class Knockout:
@@ -67,42 +67,41 @@ class Knockout:
 
 			pygame.draw.ellipse(Knockout.screen,"#DDAADD",(self.x*Knockout.SCALE - Knockout.Penguin.width,self.y*Knockout.SCALE - Knockout.Penguin.height,Knockout.Penguin.radius*Knockout.SCALE,Knockout.Penguin.radius*Knockout.SCALE),1)
 
-		def update(self, entities):
-		
-			if self.vx > 0:
-				sign = 1
-			else:
-				sign = -1
-			#self.y += self.vy - self.vx * .8
 
-		
-			#self.vx = self.vx 
+		def update(self):
 
+			# idea behind how it works
 			# energy initial = 1/2 * m * v*v + Wother
 			# energy final = 1/2 * m *v*v
 
 			# Wother = force * distance, where force = mu*normal
 
-			self.vx = abs(self.vx)
-
-			# figure out how much energy was lost
-			wOther = self.vx/Knockout.frameRate * Knockout.Penguin.mass * -9.8 * Knockout.Penguin.mu
+			# handle x first
 
 
-			eInitial = 1/2 * Knockout.Penguin.mass * self.vx *self.vx
+			theta = math.atan2(self.vy,self.vx)
 
-			eFinal = eInitial + wOther
+			velocity = math.sqrt(self.vx*self.vx + self.vy*self.vy)
 
-			if(eFinal >= 0):
-				self.vx = sign * sqrt(2 * eFinal/Knockout.Penguin.mass)
+			initialEnergy = 1/2*Knockout.Penguin.mass * velocity * velocity
+
+			work = velocity/Knockout.frameRate * Knockout.Penguin.mass * -9.8 * Knockout.Penguin.mu
+
+			finalEnergy = initialEnergy + work
+
+			if finalEnergy > 0:
+				vel = math.sqrt(2*finalEnergy/Knockout.Penguin.mass)
 			else:
-				self.vx = 0
+				vel = 0
+
+			self.vx = math.cos(theta)*vel
+			self.vy = math.sin(theta)*vel
+
 
 			self.x += self.vx/Knockout.frameRate
-			
+			self.y += self.vy/Knockout.frameRate
 
 
-			print("Energy: ", eFinal)
 
 
 	def addPenguin(self, penguin):
@@ -124,7 +123,7 @@ class Knockout:
 
 		# simulate physics first
 		for e in Knockout.entities:
-			e.update(Knockout.entities)
+			e.update()
 
 		# check for colissions
 		for e in Knockout.entities:
@@ -132,10 +131,13 @@ class Knockout:
 				if e == e2:
 					continue
 
-				dist = sqrt((e.x-e2.x)**2 + (e.y-e2.y)**2)
+				dist = math.sqrt((e.x-e2.x)**2 + (e.y-e2.y)**2)
 				if dist < Knockout.Penguin.radius:
+					momentumInitialX = Knockout.Penguin.mass * e.vx + Knockout.Penguin.mass * e2.vx
+					momentumInitialY = Knockout.Penguin.mass * e.vy + Knockout.Penguin.mass * e2.vy
+
 					print("Collide!")
-					e.vx *= -1
+					#e.vx *= -1
 					#e2.vx *= -1
 				
 
@@ -171,15 +173,23 @@ def main():
 
 	knockout = Knockout()
 
-	knockout.addPenguin(Knockout.Penguin(1,1))
-	knockout.addPenguin(Knockout.Penguin(5,1))
+	knockout.addPenguin(Knockout.Penguin(5,5))
+	knockout.addPenguin(Knockout.Penguin(6,4))
 
 
-	knockout.setVel(0,1,1)
+	knockout.setVel(0,1,0)
 
 	knockout.simulate()
 
-	knockout.setVel(0,3,-1)
+	knockout.setVel(0,0,-1)
+
+	knockout.simulate()
+
+	knockout.setVel(0,-1,0)
+
+	knockout.simulate()
+
+	knockout.setVel(0,0,1)
 
 	knockout.simulate()
 
